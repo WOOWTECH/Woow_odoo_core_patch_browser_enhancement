@@ -1,0 +1,1 @@
+# Woow_odoo_core_patch_browser_enhancement
