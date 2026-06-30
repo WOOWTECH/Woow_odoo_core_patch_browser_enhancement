@@ -55,7 +55,7 @@ class ResUsersOAuthFallback(models.Model):
                     "oauth_provider_id": provider,
                     "oauth_uid": oauth_uid,
                     "oauth_access_token": params["access_token"],
-                    "oauth_email": False,  # clear after successful bind
+                    # keep oauth_email for display (admin reference)
                 })
                 _logger.info(
                     "OAuth: bound user %s (login=%s) to provider %s "
