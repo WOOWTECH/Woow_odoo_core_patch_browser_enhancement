@@ -16,9 +16,11 @@ Two production patches for Odoo 18:
     "author": "WoowTech",
     "website": "https://woowtech.io",
     "category": "Technical",
-    "version": "18.0.1.1.0",
+    "version": "18.0.1.2.0",
     "depends": ["auth_oauth", "web"],
-    "data": [],
+    "data": [
+        "views/res_users_views.xml",
+    ],
     "assets": {
         "web.assets_backend": [
             "odoo_core_patch_browser_enhancement/static/src/js/overlay_plugin_patch.js",
