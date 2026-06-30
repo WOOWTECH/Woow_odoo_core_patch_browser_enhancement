@@ -14,8 +14,8 @@ class ResUsersOAuthFallback(models.Model):
     def _auth_oauth_signin(self, provider, validation, params):
         """Override to add email-based fallback for existing users.
 
-        When oauth_uid does not match any user, try matching by email
-        and auto-link the OAuth provider to the existing user.
+        When oauth_uid does not match any user, try matching by login
+        or email and auto-link the OAuth provider to the existing user.
         """
         oauth_uid = validation["user_id"]
         try:
@@ -29,10 +29,14 @@ class ResUsersOAuthFallback(models.Model):
             oauth_user.write({"oauth_access_token": params["access_token"]})
             return oauth_user.login
         except AccessDenied:
-            # Fallback: match by email and auto-link OAuth
+            # Fallback: match by login OR email and auto-link OAuth
             email = validation.get("email")
             if email:
-                existing = self.search([("login", "=", email)], limit=1)
+                existing = self.search([
+                    "|",
+                    ("login", "=", email),
+                    ("email", "=", email),
+                ], limit=1)
                 if existing:
                     existing.write({
                         "oauth_provider_id": provider,
@@ -40,8 +44,8 @@ class ResUsersOAuthFallback(models.Model):
                         "oauth_access_token": params["access_token"],
                     })
                     _logger.info(
-                        "OAuth: linked existing user %s to provider %s (uid=%s)",
-                        email, provider, oauth_uid,
+                        "OAuth: linked existing user %s (login=%s) to provider %s (uid=%s)",
+                        email, existing.login, provider, oauth_uid,
                     )
                     return existing.login
 
