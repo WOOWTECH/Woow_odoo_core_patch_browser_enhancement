@@ -268,6 +268,10 @@ If Odoo runs behind Nginx / Cloudflare, ensure these are set:
 
 ## Changelog
 
+### 18.0.1.2.2
+
+- OAuth email fallback is skipped when the OAuth provider is disabled
+
 ### 18.0.1.2.1
 
 - OAuth email fallback now requires a provider-verified email, a matching provider, and an unbound user (one-time bind)

@@ -36,7 +36,7 @@ class ResUsersOAuthFallback(models.Model):
 
         Flow:
         1. Try matching by oauth_uid (standard Odoo flow — already linked)
-        2. If not found and the provider says the email is verified, match by
+        2. If not found, the provider is enabled and says the email is verified, match by
            oauth_email (admin pre-authorized email, same provider, no oauth_uid
            yet) → auto-link oauth_uid (one-time bind, never rebinds)
         3. If no match, create portal user via signup
@@ -58,7 +58,14 @@ class ResUsersOAuthFallback(models.Model):
         # Step 2: Admin-authorized email matching (one-time bind).
         # Only when the provider asserts the email is verified, and only for a
         # user of this provider that has no oauth_uid yet. Never rebinds.
-        if email and self._oauth_email_is_verified(validation):
+        # A disabled provider never takes part in the email fallback.
+        provider_rec = self.env["auth.oauth.provider"].sudo().browse(provider)
+        if (
+            email
+            and provider_rec.exists()
+            and provider_rec.enabled
+            and self._oauth_email_is_verified(validation)
+        ):
             wanted = email.strip().lower()
             candidates = self.search([
                 ("oauth_email", "!=", False),
