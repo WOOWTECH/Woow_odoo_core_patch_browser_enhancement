@@ -251,8 +251,8 @@ sudo systemctl restart odoo
 ### OAuth 備援安全性
 
 - 使用 `self.search()`（非原始 SQL）——遵守 Odoo 存取控制
-- Email 匹配不區分大小寫（`=ilike`），處理提供商的大小寫差異
-- `oauth_uid` 只寫入一次——後續登入使用標準流程
+- Email 完整比對且不區分大小寫，並要求提供商回報該 Email 已驗證
+- `oauth_uid` 只寫入一次——已綁定的用戶不會被重新綁定，後續登入使用標準流程
 - 所有自動綁定操作記錄在 `INFO` 級別日誌：
   ```
   OAuth: linked existing user user@example.com to provider 3 (uid=1145081289...)

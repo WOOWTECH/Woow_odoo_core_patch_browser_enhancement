@@ -16,7 +16,7 @@ Two production patches for Odoo 18:
     "author": "WoowTech",
     "website": "https://woowtech.io",
     "category": "Technical",
-    "version": "18.0.1.2.0",
+    "version": "18.0.1.2.1",
     "depends": ["auth_oauth", "web"],
     "data": [
         "views/res_users_views.xml",

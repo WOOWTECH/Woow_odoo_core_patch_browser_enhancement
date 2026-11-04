@@ -251,8 +251,8 @@ If Odoo runs behind Nginx / Cloudflare, ensure these are set:
 ### OAuth Fallback Safety
 
 - Uses `self.search()` (not raw SQL) — respects Odoo's access control
-- Email matching is case-insensitive (`=ilike`) to handle provider variations
-- `oauth_uid` is written only once — subsequent logins use the standard flow
+- Email matching is exact and case-insensitive, and requires the provider to report the email as verified
+- `oauth_uid` is written only once — an already-bound user is never rebound; subsequent logins use the standard flow
 - All auto-link actions are logged at `INFO` level for audit:
   ```
   OAuth: linked existing user user@example.com to provider 3 (uid=1145081289...)
@@ -267,6 +267,10 @@ If Odoo runs behind Nginx / Cloudflare, ensure these are set:
 ---
 
 ## Changelog
+
+### 18.0.1.2.1
+
+- OAuth email fallback now requires a provider-verified email, a matching provider, and an unbound user (one-time bind)
 
 ### v1.1.0 (2026-06-29)
 

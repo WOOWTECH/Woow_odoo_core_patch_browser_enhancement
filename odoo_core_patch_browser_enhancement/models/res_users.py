@@ -13,10 +13,22 @@ class ResUsersOAuthFallback(models.Model):
     oauth_email = fields.Char(
         string="OAuth User Email",
         help="The email address authorized for OAuth login. "
-             "Admin fills this field to pre-authorize a Google/OAuth account "
+             "Admin fills this field (and the OAuth Provider) to pre-authorize a Google/OAuth account "
              "to bind to this internal user. On first OAuth login, the system "
              "matches by this email and auto-sets the OAuth User ID (sub).",
     )
+
+    @api.model
+    def _oauth_email_is_verified(self, validation):
+        """True only if the provider explicitly asserts the email is verified.
+
+        Google uses ``email_verified`` (OIDC / tokeninfo v3) or ``verified_email``
+        (userinfo v2); values may be bool or the strings "true"/"false".
+        """
+        for key in ("email_verified", "verified_email"):
+            if key in validation:
+                return str(validation[key]).strip().lower() == "true"
+        return False
 
     @api.model
     def _auth_oauth_signin(self, provider, validation, params):
@@ -24,8 +36,9 @@ class ResUsersOAuthFallback(models.Model):
 
         Flow:
         1. Try matching by oauth_uid (standard Odoo flow — already linked)
-        2. If not found, match by oauth_email (admin pre-authorized email)
-           → auto-link oauth_uid + clear oauth_email (one-time bind)
+        2. If not found and the provider says the email is verified, match by
+           oauth_email (admin pre-authorized email, same provider, no oauth_uid
+           yet) → auto-link oauth_uid (one-time bind, never rebinds)
         3. If no match, create portal user via signup
         """
         oauth_uid = validation["user_id"]
@@ -42,17 +55,18 @@ class ResUsersOAuthFallback(models.Model):
             oauth_user[0].write({"oauth_access_token": params["access_token"]})
             return oauth_user[0].login
 
-        # Step 2: Admin-authorized email matching
-        if email:
-            authorized = self.search([
-                ("oauth_email", "=", email),
-                "|",
+        # Step 2: Admin-authorized email matching (one-time bind).
+        # Only when the provider asserts the email is verified, and only for a
+        # user of this provider that has no oauth_uid yet. Never rebinds.
+        if email and self._oauth_email_is_verified(validation):
+            wanted = email.strip().lower()
+            candidates = self.search([
+                ("oauth_email", "!=", False),
                 ("oauth_provider_id", "=", provider),
-                ("oauth_provider_id", "=", False),
-            ], limit=1)
-            if authorized:
+            ]).filtered(lambda u: (u.oauth_email or "").strip().lower() == wanted)
+            authorized = candidates.filtered(lambda u: not u.oauth_uid)
+            if len(candidates) == 1 and authorized:
                 authorized.write({
-                    "oauth_provider_id": provider,
                     "oauth_uid": oauth_uid,
                     "oauth_access_token": params["access_token"],
                     # keep oauth_email for display (admin reference)
@@ -64,6 +78,12 @@ class ResUsersOAuthFallback(models.Model):
                     oauth_uid, email,
                 )
                 return authorized.login
+            if candidates:
+                _logger.warning(
+                    "OAuth: email fallback refused for provider %s (email=%s): "
+                    "already bound or ambiguous match",
+                    provider, email,
+                )
 
         # Step 3: No match — create portal user via signup
         _logger.info(
